@@ -1,0 +1,6 @@
+{
+  "name": "Fortnite Drop Calculator",
+  "description": "Calculates the optimal drop path, timing, and glides based on bus routes and drop destinations in Fortnite.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

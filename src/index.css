@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+.leaflet-container {
+  background-color: #101c26 !important;
+}
+
+.leaflet-tile {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
