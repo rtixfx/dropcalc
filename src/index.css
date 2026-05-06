@@ -1,11 +1,29 @@
 @import "tailwindcss";
 
 .leaflet-container {
-  background-color: #101c26 !important;
+  background-color: #0b1d2e !important; /* Deep ocean blue to match map edges */
 }
 
-.leaflet-tile {
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
-  image-rendering: pixelated;
+@keyframes slideBus {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(50%); }
+}
+
+.bus-chevron-container {
+  overflow: visible;
+}
+
+.bus-chevron {
+  filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.6));
+  animation: bus-pulse 1.5s infinite;
+}
+
+@keyframes bus-pulse {
+  0% { opacity: 0.6; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 0.6; transform: scale(0.9); }
+}
+
+.map-tiles {
+  filter: saturate(1.5);
 }
