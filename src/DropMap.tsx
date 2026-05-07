@@ -163,17 +163,26 @@ export default function DropMap() {
         )}
 
         {result && (
-          <>
-            {result.paths?.freefall && (
-              <Polyline positions={result.paths.freefall} color="#2dd4bf" weight={2} dashArray="6, 6" />
-            )}
-            {result.paths?.glide && (
-              <Polyline positions={result.paths.glide} color="#a855f7" weight={3} />
-            )}
-            {result.jumpPoint && <Marker position={result.jumpPoint} icon={jumpIcon} />}
-            {result.deployPoint && <Marker position={result.deployPoint} icon={deployIcon} />}
-          </>
-        )}
+  <>
+    {result.paths?.freefall && (
+      <Polyline 
+        positions={result.paths.freefall.map(p => [p.lat, p.lng])} 
+        color="#2dd4bf" 
+        weight={2} 
+        dashArray="6, 6" 
+      />
+    )}
+    {result.paths?.glide && (
+      <Polyline 
+        positions={result.paths.glide.map(p => [p.lat, p.lng])} 
+        color="#a855f7" 
+        weight={3} 
+      />
+    )}
+    {result.jumpPoint && <Marker position={[result.jumpPoint.lat, result.jumpPoint.lng]} icon={jumpIcon} />}
+    {result.deployPoint && <Marker position={[result.deployPoint.lat, result.deployPoint.lng]} icon={deployIcon} />}
+  </>
+)}
       </MapContainer>
 
       {/* UI Overlay */}
