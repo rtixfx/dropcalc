@@ -1,21 +1,22 @@
-import { useEffect, useState, ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { AlertTriangle, Activity, Trash2, Bus, Timer } from 'lucide-react';
+import { AlertTriangle, Activity, Trash2, Bus, Timer, XCircle, ChevronUp, Navigation } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 // Icons
 const createIcon = (color: string) => L.divIcon({
   className: 'custom-icon',
-  html: `<div style="background-color: ${color}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 8px ${color};"></div>`,
-  iconSize: [14, 14],
-  iconAnchor: [7, 7]
+  html: `<div style="background-color: ${color}; width: 16px; height: 16px; border-radius: 50%; border: 2.5px solid white; box-shadow: 0 0 10px ${color};"></div>`,
+  iconSize: [16, 16],
+  iconAnchor: [8, 8]
 });
 
-const dropIcon = createIcon('#a855f7'); // purple
-const busIcon = createIcon('#fbbf24'); // yellow
-const jumpIcon = createIcon('#2dd4bf'); // teal
-const deployIcon = createIcon('#f472b6'); // pink
+const dropIcon = createIcon('#ef4444'); // red
+const busIcon = createIcon('#6366f1'); // indigo
+const jumpIcon = createIcon('#8b5cf6'); // violet
+const deployIcon = createIcon('#8b5cf6'); // violet
 
 // Map Click Handler Component
 function MapEvents({ onMapClick }: { onMapClick: (latlng: L.LatLng) => void }) {
@@ -33,6 +34,7 @@ export default function DropMap() {
   const [busEnd, setBusEnd] = useState<L.LatLng | null>(null);
   const [buildingHeight, setBuildingHeight] = useState(0);
   const [result, setResult] = useState<any>(null);
+  const [calcError, setCalcError] = useState<string | null>(null);
   const [engineReady, setEngineReady] = useState(false);
   const [engineError, setEngineError] = useState<string | null>(null);
 
@@ -40,8 +42,8 @@ export default function DropMap() {
     async function initEngine() {
       try {
         let retries = 0;
-        while (!window.DropCalcEngine && retries < 10) {
-          await new Promise(r => setTimeout(r, 100));
+        while (!window.DropCalcEngine && retries < 20) {
+          await new Promise(r => setTimeout(r, 150));
           retries++;
         }
 
@@ -50,10 +52,10 @@ export default function DropMap() {
           await window.engineInstance.init('/heightmap.bin');
           setEngineReady(true);
         } else {
-          setEngineError('Engine missing.');
+          setEngineError('Engine script not loaded.');
         }
       } catch (err: any) {
-        setEngineError('Init failed.');
+        setEngineError('Init failed: ' + (err.message || err));
       }
     }
     initEngine();
@@ -63,20 +65,31 @@ export default function DropMap() {
     if (dropDest && busStart && busEnd && engineReady && window.engineInstance) {
       try {
         const res = window.engineInstance.calculate(dropDest, busStart, busEnd, buildingHeight);
-        setResult(res);
-      } catch (err) {
+        if (res.error) {
+          setCalcError(res.error + (res.details?.hint ? ' — ' + res.details.hint : ''));
+          setResult(null);
+        } else {
+          setCalcError(null);
+          setResult(res);
+        }
+      } catch (err: any) {
         console.error("Calculation error:", err);
+        setCalcError('Calculation failed: ' + (err.message || 'unknown error'));
+        setResult(null);
       }
     } else {
       setResult(null);
+      setCalcError(null);
     }
   }, [dropDest, busStart, busEnd, buildingHeight, engineReady]);
 
   const handleMapClick = (latlng: L.LatLng) => {
     if (dropDest && busStart && busEnd) {
+      // Reset bus for new route, keep drop
       setBusStart(latlng);
       setBusEnd(null);
       setResult(null);
+      setCalcError(null);
       return;
     }
     if (!dropDest) setDropDest(latlng);
@@ -97,25 +110,24 @@ export default function DropMap() {
     const dy = end.lat - start.lat;
     const totalDist = Math.sqrt(dx * dx + dy * dy);
     
-    // Y visual direction
     const visualDy = -(end.lat - start.lat);
     const angle = Math.atan2(visualDy, dx) * 180 / Math.PI;
 
-    const numArrows = Math.floor(totalDist / 6); 
+    const numArrows = Math.max(1, Math.floor(totalDist / 6));
     for (let i = 1; i <= numArrows; i++) {
-        const t = i / (numArrows + 1);
-        points.push({
-            lat: start.lat + dy * t,
-            lng: start.lng + dx * t,
-            angle,
-            animDelay: i * 0.05
-        });
+      const t = i / (numArrows + 1);
+      points.push({
+        lat: start.lat + dy * t,
+        lng: start.lng + dx * t,
+        angle,
+        animDelay: i * 0.05
+      });
     }
     return points;
   };
 
   return (
-    <div className="relative w-full h-screen bg-[#0b1d2e] text-[#e2d5f8] overflow-hidden font-sans">
+    <div className="relative w-full h-screen bg-[#2f3137] text-zinc-100 overflow-hidden font-sans">
       <MapContainer
         crs={L.CRS.Simple}
         bounds={[[-256, 0], [0, 256]]}
@@ -125,17 +137,17 @@ export default function DropMap() {
         minZoom={2}
         maxZoom={6}
         zoomControl={false}
-        className="absolute inset-0 z-0 bg-[#0b1d2e]"
+        className="absolute inset-0 z-0 bg-[#2f3137]"
       >
         <TileLayer
-  url="https://fortnite.gg/maps/40.30/{z}/{x}/{y}.webp"
-  tileSize={256}
-  noWrap={true}
-  maxNativeZoom={5}
-  maxZoom={6}
-  bounds={[[-256, 0], [0, 256]]}
-  className="map-tiles"
-/>
+          url="https://fortnite.gg/maps/40.30/{z}/{x}/{y}.webp"
+          tileSize={256}
+          noWrap={true}
+          maxNativeZoom={5}
+          maxZoom={6}
+          bounds={[[-256, 0], [0, 256]]}
+          className="map-tiles"
+        />
         <MapEvents onMapClick={handleMapClick} />
 
         {dropDest && <Marker position={dropDest} icon={dropIcon} />}
@@ -144,16 +156,18 @@ export default function DropMap() {
 
         {busStart && busEnd && (
           <>
-            <Polyline positions={[busStart, busEnd]} color="#00e5ff" weight={2} opacity={0.3} />
+            <Polyline positions={[busStart, busEnd]} color="#8b5cf6" weight={2} opacity={0.4} />
             {getBusArrowMarkers(busStart, busEnd).map((pos, i) => (
               <Marker 
                 key={i}
                 position={pos} 
                 icon={L.divIcon({
                   className: 'bus-chevron-container',
-                  html: `<svg class="bus-chevron" style="transform: rotate(${pos.angle}deg); display: block; animation-delay: ${pos.animDelay}s;" viewBox="0 0 24 24" width="24" height="24">
-                           <polygon points="4,2 18,12 4,22 8,12" fill="#00e5ff" />
-                         </svg>`,
+                  html: `<div style="transform: rotate(${pos.angle}deg); width: 100%; height: 100%;">
+                           <svg class="bus-chevron" style="display: block; animation-delay: ${pos.animDelay}s;" viewBox="0 0 24 24" width="24" height="24">
+                             <polygon points="4,2 18,12 4,22 8,12" fill="#06b6d4" />
+                           </svg>
+                         </div>`,
                   iconSize: [24, 24],
                   iconAnchor: [12, 12]
                 })} 
@@ -163,107 +177,216 @@ export default function DropMap() {
         )}
 
         {result && (
-  <>
-    {result.paths?.freefall && (
-      <Polyline 
-        positions={result.paths.freefall.map(p => [p.lat, p.lng])} 
-        color="#2dd4bf" 
-        weight={2} 
-        dashArray="6, 6" 
-      />
-    )}
-    {result.paths?.glide && (
-      <Polyline 
-        positions={result.paths.glide.map(p => [p.lat, p.lng])} 
-        color="#a855f7" 
-        weight={3} 
-      />
-    )}
-    {result.jumpPoint && <Marker position={[result.jumpPoint.lat, result.jumpPoint.lng]} icon={jumpIcon} />}
-    {result.deployPoint && <Marker position={[result.deployPoint.lat, result.deployPoint.lng]} icon={deployIcon} />}
-  </>
-)}
+          <>
+            {result.paths?.freefall && result.paths.freefall.length > 1 && (
+              <Polyline 
+                positions={result.paths.freefall.map((p: any) => [p.lat, p.lng])} 
+                color="#06b6d4" 
+                weight={2.5} 
+                dashArray="8, 8" 
+              />
+            )}
+            {result.paths?.glide && result.paths.glide.length > 1 && (
+              <Polyline 
+                positions={result.paths.glide.map((p: any) => [p.lat, p.lng])} 
+                color="#8b5cf6" 
+                weight={3} 
+              />
+            )}
+            {result.jumpPoint && <Marker position={[result.jumpPoint.lat, result.jumpPoint.lng]} icon={jumpIcon} />}
+            {result.deployPoint && <Marker position={[result.deployPoint.lat, result.deployPoint.lng]} icon={deployIcon} />}
+          </>
+        )}
       </MapContainer>
 
       {/* UI Overlay */}
-      <div className="absolute top-4 left-4 z-[999] pointer-events-none w-[260px] flex flex-col gap-2 font-sans">
-        <div className="bg-[#0b0c10]/80 backdrop-blur-md border border-purple-500/30 rounded-xl p-3 pointer-events-auto flex flex-col gap-3 shadow-2xl">
+      <div className="absolute top-4 left-4 md:top-6 md:left-6 z-[999] pointer-events-auto">
+        <a href="/" className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-[#09090b]/80 backdrop-blur-md border border-white/10 hover:bg-zinc-800 transition-colors shadow-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">
+            <path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>
+          </svg>
+        </a>
+      </div>
+
+      <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8 z-[999] pointer-events-none w-[340px] flex flex-col gap-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-[#09090b]/95 backdrop-blur-3xl border border-violet-500/10 rounded-3xl p-6 pointer-events-auto flex flex-col gap-5 shadow-[0_16px_40px_rgba(0,0,0,0.8),inset_0__1px_1px_rgba(255,255,255,0.05)]"
+        >
           
           {/* Header */}
-          <div className="flex justify-between items-center pb-2 border-b border-purple-500/20">
-            <div className="flex items-center gap-2">
-              <h1 className="text-[11px] font-bold text-white tracking-[0.2em] uppercase">Dropmazter</h1>
-              {engineError ? (
-                <AlertTriangle className="w-3 h-3 text-red-500" />
-              ) : !engineReady ? (
-                <Activity className="w-3 h-3 animate-spin text-purple-400" />
-              ) : (
-                <div className="w-1.5 h-1.5 rounded-full bg-purple-500 shadow-[0_0_5px_#a855f7]"></div>
-              )}
+          <div className="flex justify-between items-center pb-4 border-b border-white/5">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-violet-500/20 to-indigo-500/10 rounded-xl border border-violet-500/20 shadow-[0_0_15px_rgba(139,92,246,0.15)] flex items-center justify-center">
+                <Navigation className="w-4 h-4 text-violet-400 drop-shadow-[0_0_8px_rgba(139,92,246,0.8)]" />
+              </div>
+              <div className="flex flex-col">
+                <h1 className="text-[13px] font-black text-white tracking-[0.2em] uppercase origin-left">
+                  DropIQ
+                </h1>
+                <span className="text-[9px] uppercase tracking-widest text-violet-500/80 font-bold mt-0.5">
+                  {getStepText()}
+                </span>
+              </div>
             </div>
-            <div className="text-[9px] uppercase tracking-widest text-purple-300 font-semibold">
-              {getStepText()}
+            <div className="flex flex-col items-end justify-center">
+              <div className="flex items-center gap-2">
+                {engineError ? (
+                  <AlertTriangle className="w-4 h-4 text-red-500" />
+                ) : !engineReady ? (
+                  <Activity className="w-4 h-4 animate-spin text-violet-400" />
+                ) : (
+                  <div className="flex items-center justify-center relative w-3 h-3">
+                     <div className="absolute w-full h-full rounded-full bg-violet-400/30 animate-ping"></div>
+                     <div className="w-1.5 h-1.5 rounded-full bg-violet-400 shadow-[0_0_10px_rgba(139,92,246,1)]"></div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Quick Actions */}
-          <div className="flex gap-2">
-            <button 
-              onClick={() => { setDropDest(null); setBusStart(null); setBusEnd(null); setResult(null); }}
-              className="flex-1 py-1.5 bg-purple-900/20 hover:bg-purple-900/40 rounded-md border border-purple-500/20 text-purple-100 text-[9px] uppercase tracking-wider transition-colors flex justify-center items-center gap-1.5"
+          <div className="flex gap-3">
+            <motion.button 
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => { setDropDest(null); setBusStart(null); setBusEnd(null); setResult(null); setCalcError(null); }}
+              className="flex-1 py-3 bg-zinc-900/50 hover:bg-zinc-800/80 rounded-2xl border border-white/5 text-zinc-300 hover:text-white text-[10px] font-bold uppercase tracking-widest transition-all shadow-inner flex justify-center items-center gap-2"
             >
-              <Trash2 className="w-3 h-3" /> Reset
-            </button>
-            <button 
-              onClick={() => { setBusStart(null); setBusEnd(null); setResult(null); }}
-              className="flex-1 py-1.5 bg-purple-900/20 hover:bg-purple-900/40 rounded-md border border-purple-500/20 text-purple-100 text-[9px] uppercase tracking-wider transition-colors flex justify-center items-center gap-1.5"
+              <Trash2 className="w-3.5 h-3.5 text-zinc-500 group-hover:text-red-400 transition-colors" /> Reset
+            </motion.button>
+            <motion.button 
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => { setBusStart(null); setBusEnd(null); setResult(null); setCalcError(null); }}
+              className="flex-1 py-3 bg-gradient-to-r from-violet-500/10 to-indigo-500/10 hover:from-violet-500/20 hover:to-indigo-500/20 rounded-2xl border border-violet-500/20 hover:border-violet-400/40 text-violet-50 text-[10px] font-bold uppercase tracking-widest transition-all flex justify-center items-center gap-2 shadow-[0_0_20px_rgba(139,92,246,0.05)]"
             >
-              <Bus className="w-3 h-3" /> New Bus
-            </button>
+              <Bus className="w-3.5 h-3.5 text-violet-400" /> New Bus
+            </motion.button>
           </div>
 
           {/* Height Slider */}
-          <div className="pt-1.5">
-            <div className="flex justify-between items-center mb-1.5">
-              <span className="text-[9px] uppercase tracking-wider text-purple-300/80 font-medium">Target Height</span>
-              <span className="text-[9px] font-mono text-purple-200">+{buildingHeight}m</span>
+          <div className="pt-2 px-1">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 font-bold flex items-center gap-2">
+                Drop Target <span className="w-1 h-1 rounded-full bg-zinc-700"></span> Height
+              </span>
+              <span className="text-xs font-mono text-violet-400 font-bold bg-violet-500/10 px-2 py-0.5 rounded-md border border-violet-500/20">+{buildingHeight}m</span>
             </div>
-            <input
-              type="range"
-              min="0"
-              max="50"
-              value={buildingHeight}
-              onChange={(e) => setBuildingHeight(parseInt(e.target.value, 10))}
-              className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-purple-500 hover:accent-purple-400"
-            />
+            <div className="relative w-full h-8 flex items-center">
+              <div className="absolute inset-x-0 h-1.5 bg-zinc-800/80 rounded-full overflow-hidden shadow-inner">
+                <div className="h-full bg-gradient-to-r from-indigo-600 to-violet-400 rounded-full" style={{ width: `${(buildingHeight / 50) * 100}%` }}></div>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="50"
+                value={buildingHeight}
+                onChange={(e) => setBuildingHeight(parseInt(e.target.value, 10))}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+              <div 
+                className="absolute h-4 w-4 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.5),0_2px_4px_rgba(0,0,0,0.5)] pointer-events-none transition-transform" 
+                style={{ left: `calc(${(buildingHeight / 50) * 100}% - 8px)` }}
+              ></div>
+            </div>
           </div>
 
-          {/* Results Display */}
-          {result && (
-            <div className="flex flex-col gap-2 pt-3 border-t border-purple-500/20">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] uppercase tracking-wider text-purple-200 font-bold flex items-center gap-1.5">
-                  <Timer className="w-3.5 h-3.5 text-purple-400" /> Ideal Drop
-                </span>
-                <span className="text-xl font-mono font-light text-white leading-none">
-                  {formatTimeOrVal(result.timing?.total)}
-                </span>
-              </div>
-              
-              <div className="flex justify-between text-[9px] font-mono text-purple-200/80 bg-purple-900/20 rounded border border-purple-500/10 px-2 py-1.5 mt-1">
-                <span>FF: {formatDist(result.distances?.freefallHorizM || result.distances?.freefallHoriz)}</span>
-                <span>GL: {formatDist(result.distances?.glideHorizM || result.distances?.glideHoriz)}</span>
-                <span>{formatDirection(result.glideDirection?.degrees)} {result.glideDirection?.cardinal || ''}</span>
-              </div>
-
-              {result.hasObstacle && (
-                <div className="mt-1 bg-red-500/10 border border-red-500/20 rounded p-1.5 text-[9px] text-red-400 uppercase tracking-widest flex items-center justify-center gap-1.5">
-                  <AlertTriangle className="w-3 h-3" /> Terrain Obstacle
+          {/* Error Display */}
+          <AnimatePresence>
+            {calcError && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0, y: -10 }} 
+                animate={{ opacity: 1, height: 'auto', y: 0 }} 
+                exit={{ opacity: 0, height: 0, y: -10 }}
+                className="overflow-hidden"
+              >
+                <div className="flex items-start gap-2.5 bg-red-500/15 border border-red-500/30 rounded-xl p-3 mt-1">
+                  <XCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-[10px] text-red-200 uppercase tracking-widest font-semibold leading-relaxed">{calcError}</span>
                 </div>
-              )}
-            </div>
-          )}
-        </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Results Display */}
+          <AnimatePresence>
+            {result && !result.error && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }} 
+                animate={{ opacity: 1, height: 'auto' }} 
+                exit={{ opacity: 0, height: 0 }}
+                className="flex flex-col gap-4 mt-1 border-t border-white/10 pt-4 overflow-hidden"
+              >
+                {/* Total Time & Breakdown */}
+                <div className="flex justify-between items-end">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-widest text-zinc-400 font-bold mb-1.5 flex items-center gap-1.5">
+                      <Timer className="w-3.5 h-3.5 text-violet-400" /> Ideal Drop
+                    </span>
+                    <span className="text-3xl font-mono font-light text-white leading-none">
+                      {formatTimeOrVal(result.timing?.total)}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 text-[10px] font-mono text-zinc-500">
+                    <span>Bus: <span className="text-zinc-200">{formatTimeOrVal(result.timing?.bus)}</span></span>
+                    <span>Dive: <span className="text-zinc-200">{formatTimeOrVal(result.timing?.freefall)}</span></span>
+                    <span>Glide: <span className="text-zinc-200">{formatTimeOrVal(result.timing?.glide)}</span></span>
+                  </div>
+                </div>
+
+                {/* Distances & Direction grid */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="flex flex-col items-center bg-zinc-900/40 rounded-xl py-3 border border-white/5 shadow-inner">
+                    <span className="text-[8px] uppercase tracking-[0.2em] text-zinc-500 font-bold mb-1">Freefall</span>
+                    <span className="text-xs font-mono text-zinc-200 font-medium">{formatDist(result.distances?.freefallM)}</span>
+                  </div>
+                  <div className="flex flex-col items-center bg-zinc-900/40 rounded-xl py-3 border border-white/5 shadow-inner">
+                    <span className="text-[8px] uppercase tracking-[0.2em] text-zinc-500 font-bold mb-1">Glide</span>
+                    <span className="text-xs font-mono text-zinc-200 font-medium">{formatDist(result.distances?.glideM)}</span>
+                  </div>
+                  <div className="flex flex-col items-center bg-gradient-to-br from-violet-500/10 to-indigo-500/5 rounded-xl py-3 border border-violet-500/20 shadow-inner">
+                    <span className="text-[8px] uppercase tracking-[0.2em] text-violet-500 font-bold mb-1">Heading</span>
+                    <span className="text-xs font-mono text-violet-400 font-bold">{formatDirection(result.glideDirection?.degrees)} {result.glideDirection?.cardinal || ''}</span>
+                  </div>
+                </div>
+
+                {/* Dive Angle Info */}
+                {result.dive && (
+                  <div className="flex justify-between items-center text-[10px] font-mono text-zinc-400 bg-zinc-900/40 rounded-xl border border-white/5 px-4 py-3 shadow-inner">
+                    <span>Angle <strong className="text-zinc-200 font-normal">{result.dive.angle?.toFixed(1)}°</strong></span>
+                    <span>Vx <strong className="text-zinc-200 font-normal">{result.dive.horizSpeed?.toFixed(0)}m/s</strong></span>
+                    <span>Vz <strong className="text-zinc-200 font-normal">{result.dive.vertSpeed?.toFixed(0)}m/s</strong></span>
+                  </div>
+                )}
+
+                {/* Deploy Recommendation */}
+                {result.deploy && (
+                  <div className={`rounded-xl p-3 text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 font-bold transition-all ${
+                    result.deploy.isEarly 
+                      ? 'bg-amber-500/15 border border-amber-500/40 text-amber-400' 
+                      : 'bg-violet-500/15 border border-violet-500/40 text-violet-400'
+                  }`}>
+                    <ChevronUp className={`w-4 h-4 ${result.deploy.isEarly ? 'text-amber-400' : 'text-violet-400'}`} />
+                    {result.deploy.isEarly 
+                      ? `Early Pop: ${result.deploy.height}m` 
+                      : `Auto Deploy (${result.deploy.height}m)`
+                    }
+                  </div>
+                )}
+
+                {/* Terrain Obstacle */}
+                {result.hasObstacle && (
+                  <div className="bg-red-500/15 border border-red-500/30 rounded-xl p-2.5 text-[10px] text-red-400 uppercase tracking-widest flex items-center justify-center gap-2 font-bold shadow-[0_0_15px_rgba(239,68,68,0.15)]">
+                    <AlertTriangle className="w-4 h-4" /> Terrain Obstacle
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+        </motion.div>
       </div>
     </div>
   );
@@ -282,7 +405,7 @@ function formatDist(val: any): string {
 }
 function formatDirection(val: any): string {
   if (val === undefined || val === null) return "--";
-  if (typeof val === 'number') return val.toFixed(1) + '°';
+  if (typeof val === 'number') return val.toFixed(0) + '°';
   return String(val);
 }
 

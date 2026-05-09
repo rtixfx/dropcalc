@@ -1,7 +1,11 @@
 @import "tailwindcss";
 
 .leaflet-container {
-  background-color: #0b1d2e !important; /* Deep ocean blue to match map edges */
+  background-color: #2f3137 !important; /* Exact match for fortnite.gg gap tile color */
+}
+
+/* Base tiles styling */
+.leaflet-tile {
 }
 
 @keyframes slideBus {
@@ -14,7 +18,7 @@
 }
 
 .bus-chevron {
-  filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.6));
+  filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.6));
   animation: bus-pulse 1.5s infinite;
 }
 
@@ -27,3 +31,18 @@
 .map-tiles {
   filter: saturate(1.5);
 }
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 25s linear infinite;
+}
+
