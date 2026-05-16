@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, useMapEvents } from 'react-leaflet';
+import { Link } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { AlertTriangle, Activity, Trash2, Bus, Timer, XCircle, ChevronUp, Navigation } from 'lucide-react';
@@ -14,9 +15,9 @@ const createIcon = (color: string) => L.divIcon({
 });
 
 const dropIcon = createIcon('#ef4444'); // red
-const busIcon = createIcon('#6366f1'); // indigo
-const jumpIcon = createIcon('#8b5cf6'); // violet
-const deployIcon = createIcon('#8b5cf6'); // violet
+const busIcon = createIcon('#3b82f6'); // blue
+const jumpIcon = createIcon('#60a5fa'); // light blue
+const deployIcon = createIcon('#60a5fa');
 
 // Map Click Handler Component
 function MapEvents({ onMapClick }: { onMapClick: (latlng: L.LatLng) => void }) {
@@ -127,7 +128,7 @@ export default function DropMap() {
   };
 
   return (
-    <div className="relative w-full h-screen bg-[#2f3137] text-zinc-100 overflow-hidden font-sans">
+    <div className="relative w-full h-screen bg-[#0A0A0A] text-zinc-100 overflow-hidden font-sans">
       <MapContainer
         crs={L.CRS.Simple}
         bounds={[[-256, 0], [0, 256]]}
@@ -137,10 +138,10 @@ export default function DropMap() {
         minZoom={2}
         maxZoom={6}
         zoomControl={false}
-        className="absolute inset-0 z-0 bg-[#2f3137]"
+        className="absolute inset-0 z-0 bg-[#0A0A0A]"
       >
         <TileLayer
-          url="https://fortnite.gg/maps/40.30/{z}/{x}/{y}.webp"
+          url="https://fortnite.gg/maps/40.40/{z}/{x}/{y}.webp"
           tileSize={256}
           noWrap={true}
           maxNativeZoom={5}
@@ -156,7 +157,7 @@ export default function DropMap() {
 
         {busStart && busEnd && (
           <>
-            <Polyline positions={[busStart, busEnd]} color="#8b5cf6" weight={2} opacity={0.4} />
+            <Polyline positions={[busStart, busEnd]} color="#60A5FA" weight={2} opacity={0.4} />
             {getBusArrowMarkers(busStart, busEnd).map((pos, i) => (
               <Marker 
                 key={i}
@@ -165,7 +166,7 @@ export default function DropMap() {
                   className: 'bus-chevron-container',
                   html: `<div style="transform: rotate(${pos.angle}deg); width: 100%; height: 100%;">
                            <svg class="bus-chevron" style="display: block; animation-delay: ${pos.animDelay}s;" viewBox="0 0 24 24" width="24" height="24">
-                             <polygon points="4,2 18,12 4,22 8,12" fill="#06b6d4" />
+                             <polygon points="4,2 18,12 4,22 8,12" fill="#93C5FD" />
                            </svg>
                          </div>`,
                   iconSize: [24, 24],
@@ -181,7 +182,7 @@ export default function DropMap() {
             {result.paths?.freefall && result.paths.freefall.length > 1 && (
               <Polyline 
                 positions={result.paths.freefall.map((p: any) => [p.lat, p.lng])} 
-                color="#06b6d4" 
+                color="#60A5FA" 
                 weight={2.5} 
                 dashArray="8, 8" 
               />
@@ -189,7 +190,7 @@ export default function DropMap() {
             {result.paths?.glide && result.paths.glide.length > 1 && (
               <Polyline 
                 positions={result.paths.glide.map((p: any) => [p.lat, p.lng])} 
-                color="#8b5cf6" 
+                color="#3b82f6" 
                 weight={3} 
               />
             )}
@@ -201,31 +202,31 @@ export default function DropMap() {
 
       {/* UI Overlay */}
       <div className="absolute top-4 left-4 md:top-6 md:left-6 z-[999] pointer-events-auto">
-        <a href="/" className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-[#09090b]/80 backdrop-blur-md border border-white/10 hover:bg-zinc-800 transition-colors shadow-lg">
+        <Link to="/" className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-[#0A0A0A]/80 backdrop-blur-md border border-white/10 hover:bg-zinc-800 transition-colors shadow-lg">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">
             <path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>
           </svg>
-        </a>
+        </Link>
       </div>
 
       <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8 z-[999] pointer-events-none w-[340px] flex flex-col gap-4">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-[#09090b]/95 backdrop-blur-3xl border border-violet-500/10 rounded-3xl p-6 pointer-events-auto flex flex-col gap-5 shadow-[0_16px_40px_rgba(0,0,0,0.8),inset_0__1px_1px_rgba(255,255,255,0.05)]"
+          className="bg-[#0A0A0A]/95 backdrop-blur-3xl border border-blue-500/10 rounded-3xl p-6 pointer-events-auto flex flex-col gap-5 shadow-[0_16px_40px_rgba(0,0,0,0.8),inset_0__1px_1px_rgba(255,255,255,0.05)]"
         >
           
           {/* Header */}
           <div className="flex justify-between items-center pb-4 border-b border-white/5">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-violet-500/20 to-indigo-500/10 rounded-xl border border-violet-500/20 shadow-[0_0_15px_rgba(139,92,246,0.15)] flex items-center justify-center">
-                <Navigation className="w-4 h-4 text-violet-400 drop-shadow-[0_0_8px_rgba(139,92,246,0.8)]" />
+              <div className="p-2 bg-gradient-to-br from-blue-500/20 to-blue-400/10 rounded-xl border border-blue-500/20 shadow-[0_0_15px_rgba(96,165,250,0.15)] flex items-center justify-center">
+                <Navigation className="w-4 h-4 text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.8)]" />
               </div>
               <div className="flex flex-col">
                 <h1 className="text-[13px] font-black text-white tracking-[0.2em] uppercase origin-left">
-                  DropIQ
+                  GlideCalc
                 </h1>
-                <span className="text-[9px] uppercase tracking-widest text-violet-500/80 font-bold mt-0.5">
+                <span className="text-[9px] uppercase tracking-widest text-blue-500/80 font-bold mt-0.5">
                   {getStepText()}
                 </span>
               </div>
@@ -235,11 +236,11 @@ export default function DropMap() {
                 {engineError ? (
                   <AlertTriangle className="w-4 h-4 text-red-500" />
                 ) : !engineReady ? (
-                  <Activity className="w-4 h-4 animate-spin text-violet-400" />
+                  <Activity className="w-4 h-4 animate-spin text-blue-400" />
                 ) : (
                   <div className="flex items-center justify-center relative w-3 h-3">
-                     <div className="absolute w-full h-full rounded-full bg-violet-400/30 animate-ping"></div>
-                     <div className="w-1.5 h-1.5 rounded-full bg-violet-400 shadow-[0_0_10px_rgba(139,92,246,1)]"></div>
+                     <div className="absolute w-full h-full rounded-full bg-blue-400/30 animate-ping"></div>
+                     <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,1)]"></div>
                   </div>
                 )}
               </div>
@@ -260,9 +261,9 @@ export default function DropMap() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => { setBusStart(null); setBusEnd(null); setResult(null); setCalcError(null); }}
-              className="flex-1 py-3 bg-gradient-to-r from-violet-500/10 to-indigo-500/10 hover:from-violet-500/20 hover:to-indigo-500/20 rounded-2xl border border-violet-500/20 hover:border-violet-400/40 text-violet-50 text-[10px] font-bold uppercase tracking-widest transition-all flex justify-center items-center gap-2 shadow-[0_0_20px_rgba(139,92,246,0.05)]"
+              className="flex-1 py-3 bg-gradient-to-r from-blue-500/10 to-blue-400/10 hover:from-blue-500/20 hover:to-blue-400/20 rounded-2xl border border-blue-500/20 hover:border-blue-400/40 text-blue-50 text-[10px] font-bold uppercase tracking-widest transition-all flex justify-center items-center gap-2 shadow-[0_0_20px_rgba(96,165,250,0.05)]"
             >
-              <Bus className="w-3.5 h-3.5 text-violet-400" /> New Bus
+              <Bus className="w-3.5 h-3.5 text-blue-400" /> New Bus
             </motion.button>
           </div>
 
@@ -272,11 +273,11 @@ export default function DropMap() {
               <span className="text-[10px] uppercase tracking-[0.15em] text-zinc-500 font-bold flex items-center gap-2">
                 Drop Target <span className="w-1 h-1 rounded-full bg-zinc-700"></span> Height
               </span>
-              <span className="text-xs font-mono text-violet-400 font-bold bg-violet-500/10 px-2 py-0.5 rounded-md border border-violet-500/20">+{buildingHeight}m</span>
+              <span className="text-xs font-mono text-blue-400 font-bold bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20">+{buildingHeight}m</span>
             </div>
             <div className="relative w-full h-8 flex items-center">
               <div className="absolute inset-x-0 h-1.5 bg-zinc-800/80 rounded-full overflow-hidden shadow-inner">
-                <div className="h-full bg-gradient-to-r from-indigo-600 to-violet-400 rounded-full" style={{ width: `${(buildingHeight / 50) * 100}%` }}></div>
+                <div className="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full" style={{ width: `${(buildingHeight / 50) * 100}%` }}></div>
               </div>
               <input
                 type="range"
@@ -323,7 +324,7 @@ export default function DropMap() {
                 <div className="flex justify-between items-end">
                   <div className="flex flex-col">
                     <span className="text-[10px] uppercase tracking-widest text-zinc-400 font-bold mb-1.5 flex items-center gap-1.5">
-                      <Timer className="w-3.5 h-3.5 text-violet-400" /> Ideal Drop
+                      <Timer className="w-3.5 h-3.5 text-blue-400" /> Ideal Drop
                     </span>
                     <span className="text-3xl font-mono font-light text-white leading-none">
                       {formatTimeOrVal(result.timing?.total)}
@@ -346,9 +347,9 @@ export default function DropMap() {
                     <span className="text-[8px] uppercase tracking-[0.2em] text-zinc-500 font-bold mb-1">Glide</span>
                     <span className="text-xs font-mono text-zinc-200 font-medium">{formatDist(result.distances?.glideM)}</span>
                   </div>
-                  <div className="flex flex-col items-center bg-gradient-to-br from-violet-500/10 to-indigo-500/5 rounded-xl py-3 border border-violet-500/20 shadow-inner">
-                    <span className="text-[8px] uppercase tracking-[0.2em] text-violet-500 font-bold mb-1">Heading</span>
-                    <span className="text-xs font-mono text-violet-400 font-bold">{formatDirection(result.glideDirection?.degrees)} {result.glideDirection?.cardinal || ''}</span>
+                  <div className="flex flex-col items-center bg-gradient-to-br from-blue-500/10 to-blue-400/5 rounded-xl py-3 border border-blue-500/20 shadow-inner">
+                    <span className="text-[8px] uppercase tracking-[0.2em] text-blue-500 font-bold mb-1">Heading</span>
+                    <span className="text-xs font-mono text-blue-400 font-bold">{formatDirection(result.glideDirection?.degrees)} {result.glideDirection?.cardinal || ''}</span>
                   </div>
                 </div>
 
@@ -366,9 +367,9 @@ export default function DropMap() {
                   <div className={`rounded-xl p-3 text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 font-bold transition-all ${
                     result.deploy.isEarly 
                       ? 'bg-amber-500/15 border border-amber-500/40 text-amber-400' 
-                      : 'bg-violet-500/15 border border-violet-500/40 text-violet-400'
+                      : 'bg-blue-500/15 border border-blue-500/40 text-blue-400'
                   }`}>
-                    <ChevronUp className={`w-4 h-4 ${result.deploy.isEarly ? 'text-amber-400' : 'text-violet-400'}`} />
+                    <ChevronUp className={`w-4 h-4 ${result.deploy.isEarly ? 'text-amber-400' : 'text-blue-400'}`} />
                     {result.deploy.isEarly 
                       ? `Early Pop: ${result.deploy.height}m` 
                       : `Auto Deploy (${result.deploy.height}m)`
