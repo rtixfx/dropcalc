@@ -5,10 +5,6 @@ export function CookieConsent() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // In development preview, always show for testing
-    if (import.meta.env.DEV) {
-      localStorage.removeItem('cookie-consent');
-    }
     const consent = localStorage.getItem('cookie-consent');
     if (!consent) {
       setIsVisible(true);

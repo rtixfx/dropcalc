@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, useMapEvents } from 'react-leaflet';
 import { Link } from 'react-router-dom';
+import { AuthButton } from './components/AuthButton';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { AlertTriangle, Activity, Trash2, Bus, Timer, XCircle, ChevronUp, Navigation } from 'lucide-react';
@@ -207,6 +208,10 @@ export default function DropMap() {
             <path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>
           </svg>
         </Link>
+      </div>
+
+      <div className="absolute top-4 right-4 md:top-6 md:right-6 z-[999] pointer-events-auto">
+        <AuthButton />
       </div>
 
       <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8 z-[999] pointer-events-none w-[340px] flex flex-col gap-4">

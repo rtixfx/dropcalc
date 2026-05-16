@@ -1,4 +1,4 @@
-import { ArrowRight, Map as MapIcon, Navigation, Shield, Zap, Menu, Timer, RefreshCw, Users, BarChart3, MapPin } from 'lucide-react';
+import { ArrowRight, Map as MapIcon, Navigation, Shield, Zap, Menu, Timer, RefreshCw, Users, BarChart3, MapPin, Check, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -7,6 +7,12 @@ import { AuthButton } from './components/AuthButton';
 
 export default function Landing() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    e.preventDefault();
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    setMobileMenuOpen(false);
+  };
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] font-sans selection:bg-blue-500/30 selection:text-blue-200">
@@ -19,8 +25,9 @@ export default function Landing() {
           </div>
 
           <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">Features</a>
-            <a href="#compare" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">Comparison</a>
+            <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">Features</a>
+            <a href="#compare" onClick={(e) => scrollToSection(e, 'compare')} className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">Comparison</a>
+            <Link to="/blogs" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">Blogs</Link>
           </div>
 
           <div className="hidden md:flex items-center gap-4">
@@ -49,8 +56,9 @@ export default function Landing() {
                <span className="text-sm font-medium text-zinc-400">Account</span>
                <AuthButton />
             </div>
-            <a href="#features" className="text-sm font-medium text-zinc-300" onClick={() => setMobileMenuOpen(false)}>Features</a>
-            <a href="#compare" className="text-sm font-medium text-zinc-300" onClick={() => setMobileMenuOpen(false)}>Comparison</a>
+            <a href="#features" className="text-sm font-medium text-zinc-300" onClick={(e) => scrollToSection(e, 'features')}>Features</a>
+            <a href="#compare" className="text-sm font-medium text-zinc-300" onClick={(e) => scrollToSection(e, 'compare')}>Comparison</a>
+            <Link to="/blogs" className="text-sm font-medium text-zinc-300" onClick={() => setMobileMenuOpen(false)}>Blogs</Link>
             <div className="h-px bg-white/5 w-full my-2"></div>
             <Link to="/app" className="h-12 w-full bg-zinc-100 hover:bg-white text-zinc-950 text-base font-bold rounded-lg flex items-center justify-center transition-all" onClick={() => setMobileMenuOpen(false)}>
               Drop Calculator
@@ -171,8 +179,8 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Comparison Section */}
-      <section id="compare" className="py-32 bg-[#050505] border-y border-white/5 relative">
+      {/* How it works Section */}
+      <section id="how-it-works" className="py-32 bg-[#050505] border-y border-white/5 relative">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <motion.div 
@@ -274,6 +282,91 @@ export default function Landing() {
               </div>
             </motion.div>
           </div>
+        </div>
+      </section>
+
+      {/* Comparison Section */}
+      <section id="compare" className="py-32 bg-[#0A0A0A] relative overflow-hidden">
+        {/* Background glow effects */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none"></div>
+
+        <div className="max-w-5xl mx-auto px-6 relative z-10">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-20"
+          >
+            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-6">
+              The unfair <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-[#93C5FD]">advantage.</span>
+            </h2>
+            <p className="text-zinc-400 max-w-2xl mx-auto text-lg leading-relaxed">
+              See how GlideCalc outpaces standard drop calculators in every metric that matters.
+            </p>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="w-full overflow-x-auto pb-12"
+          >
+            <div className="min-w-[700px] grid grid-cols-[1.5fr_1fr_1fr] bg-[#050505] rounded-3xl border border-white/10 shadow-2xl overflow-hidden relative">
+              {/* Highlight background column for GlideCalc */}
+              <div className="absolute top-0 left-[37.5%] w-[31.25%] h-full bg-blue-500/[0.03] pointer-events-none hidden md:block"></div>
+              
+              {/* Header */}
+              <div className="p-8 flex items-center border-b border-white/5 bg-[#050505]/50">
+                 <span className="text-xs uppercase tracking-widest font-bold text-zinc-500 ml-4">Features</span>
+              </div>
+              <div className="p-8 flex flex-col items-center justify-center border-b border-white/5 border-x bg-gradient-to-b from-blue-500/10 to-blue-500/5 border-x-blue-500/20 relative overflow-hidden backdrop-blur-sm">
+                 {/* Logo Background Drop */}
+                 <div className="absolute -right-4 -bottom-4 opacity-[0.05] pointer-events-none transform -rotate-12">
+                    <Logo className="w-48 h-48" />
+                 </div>
+                 <div className="relative z-10 flex flex-col items-center gap-4">
+                   <div className="w-12 h-12 rounded-xl bg-[#0A0A0A] border border-blue-500/30 p-2 shadow-[0_0_20px_rgba(59,130,246,0.3)]">
+                     <Logo className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(96,165,250,0.8)] text-white" />
+                   </div>
+                   <span className="text-xl font-black text-white tracking-wide">GlideCalc</span>
+                 </div>
+              </div>
+              <div className="p-8 flex flex-col items-center justify-center border-b border-white/5 bg-[#050505]/50">
+                 <span className="text-lg font-bold text-zinc-500">Other Tools</span>
+              </div>
+
+              {/* Rows */}
+              {[
+                { name: "Accuracy", us: "Pinpoint (1m radius)", them: "Approximate areas" },
+                { name: "Terrain Avoidance", us: "Full 3D elevation map", them: "Flat 2D only" },
+                { name: "Drop Path Optimization", us: "Continuous curve", them: "Straight lines" },
+                { name: "Real-time Calculations", us: "< 50ms latency", them: "Noticeable delay" },
+                { name: "Speed & Rendering", us: "Instant GPU rendering", them: "Slow DOM updates" },
+                { name: "Ease of Use", us: "1-Click dropmaps", them: "Manual plotting" },
+              ].map((row, i, arr) => {
+                const isLast = i === arr.length - 1;
+                return (
+                  <div className="contents group" key={i}>
+                    {/* Feature Name */}
+                    <div className={`p-6 md:px-8 border-r border-white/5 flex items-center transition-colors group-hover:bg-white/[0.02] ${!isLast ? 'border-b' : ''}`}>
+                      <span className="text-sm font-bold text-zinc-300 ml-4">{row.name}</span>
+                    </div>
+                    {/* GlideCalc */}
+                    <div className={`p-6 md:px-8 border-x border-blue-500/20 flex flex-col justify-center items-center gap-2 bg-blue-500/[0.04] transition-colors group-hover:bg-blue-500/[0.08] ${!isLast ? 'border-b border-blue-500/10' : ''}`}>
+                      <Check className="w-5 h-5 text-blue-400 drop-shadow-[0_0_5px_rgba(96,165,250,0.5)]" />
+                      <span className="text-sm font-bold text-center text-blue-200">{row.us}</span>
+                    </div>
+                    {/* Standard Tools */}
+                    <div className={`p-6 md:px-8 flex flex-col justify-center items-center gap-2 transition-colors group-hover:bg-white/[0.02] ${!isLast ? 'border-b border-white/5' : ''}`}>
+                       <X className="w-4 h-4 text-zinc-600" />
+                       <span className="text-sm font-medium text-zinc-500 text-center">{row.them}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
         </div>
       </section>
 

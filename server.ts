@@ -5,6 +5,7 @@ import session from "express-session";
 import crypto from "crypto";
 import Database from "better-sqlite3";
 import fs from "fs";
+import connectSqlite3 from "better-sqlite3-session-store";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -19,6 +20,8 @@ if (!fs.existsSync(dbDir)) {
 }
 const db = new Database(path.join(dbDir, "glidecalc.db"));
 
+const SqliteStore = connectSqlite3(session);
+
 // Create tables
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
@@ -29,12 +32,42 @@ db.exec(`
     lastLogin TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
+  CREATE TABLE IF NOT EXISTS posts (
+    id TEXT PRIMARY KEY,
+    title TEXT,
+    slug TEXT UNIQUE,
+    description TEXT,
+    content TEXT,
+    bannerImage TEXT,
+    readTime TEXT,
+    authorId TEXT,
+    authorName TEXT,
+    publishDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    tags TEXT
+  );
 `);
+
+try {
+  db.exec('ALTER TABLE users ADD COLUMN token TEXT');
+} catch (e) {
+  // column might already exist
+}
+
+try {
+  db.exec('ALTER TABLE posts ADD COLUMN isPinned INTEGER DEFAULT 0');
+} catch (e) {}
 
 // Secret from Env or fallback
 const SESSION_SECRET = process.env.SESSION_SECRET || "glidecalc-super-secret-session-key";
 
 app.use(session({
+  store: new SqliteStore({
+    client: db, 
+    expired: {
+      clear: true,
+      intervalMs: 900000 //ms = 15min
+    }
+  }),
   secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
@@ -62,6 +95,28 @@ declare module "express-session" {
 
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
+
+app.use((req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    try {
+      const userRow = db.prepare("SELECT * FROM users WHERE token = ?").get(token) as any;
+      if (userRow) {
+        req.session.userId = userRow.id;
+        req.session.user = {
+          id: userRow.id,
+          username: userRow.username,
+          avatar: userRow.avatar,
+          email: userRow.email
+        };
+      }
+    } catch (err) {
+      // ignore
+    }
+  }
+  next();
+});
 
 function getAppUrl(req: express.Request): string {
   // Use env APP_URL or fallback to request origin
@@ -138,25 +193,28 @@ app.get(["/api/auth/discord/callback", "/api/auth/discord/callback/"], async (re
     const stmt = db.prepare("SELECT * FROM users WHERE id = ?");
     const existingUser = stmt.get(discordUser.id);
 
+    const authToken = crypto.randomUUID();
     if (!existingUser) {
       db.prepare(`
-        INSERT INTO users (id, username, email, avatar) 
-        VALUES (?, ?, ?, ?)
+        INSERT INTO users (id, username, email, avatar, token) 
+        VALUES (?, ?, ?, ?, ?)
       `).run(
         discordUser.id,
         discordUser.username,
         discordUser.email || null,
-        discordUser.avatar
+        discordUser.avatar,
+        authToken
       );
     } else {
       db.prepare(`
         UPDATE users 
-        SET username = ?, email = ?, avatar = ?, lastLogin = CURRENT_TIMESTAMP
+        SET username = ?, email = ?, avatar = ?, token = ?, lastLogin = CURRENT_TIMESTAMP
         WHERE id = ?
       `).run(
         discordUser.username,
         discordUser.email || null,
         discordUser.avatar,
+        authToken,
         discordUser.id
       );
     }
@@ -182,7 +240,7 @@ app.get(["/api/auth/discord/callback", "/api/auth/discord/callback/"], async (re
             <script>
               const userData = ${JSON.stringify(req.session.user)};
               if (window.opener) {
-                window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS', user: userData }, '*');
+                window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS', user: userData, token: '${authToken}' }, '*');
                 window.close();
               } else {
                 window.location.href = '/';
@@ -201,15 +259,95 @@ app.get(["/api/auth/discord/callback", "/api/auth/discord/callback/"], async (re
 
 app.get("/api/auth/me", (req, res) => {
   if (!req.session.userId || !req.session.user) {
-    return res.status(401).json({ error: "Not logged in" });
+    res.status(401).json({ error: "Not logged in" });
+    return;
   }
-  res.json({ user: req.session.user });
+  const adminId = process.env.ADMIN_DISCORD_ID;
+  const isAdminFlag = !adminId || req.session.userId === adminId;
+  res.json({ user: req.session.user, isAdmin: isAdminFlag });
 });
 
 app.post("/api/auth/logout", (req, res) => {
   req.session.destroy(() => {
     res.json({ success: true });
   });
+});
+
+// Admin Check Middleware
+const isAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const adminId = process.env.ADMIN_DISCORD_ID;
+  if (!req.session.userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  if (adminId && req.session.userId !== adminId) {
+    res.status(403).json({ error: "Forbidden: Admins only" });
+    return;
+  }
+  next();
+};
+
+app.get("/api/posts", (req, res) => {
+  try {
+    const posts = db.prepare("SELECT * FROM posts ORDER BY isPinned DESC, publishDate DESC").all();
+    res.json(posts);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/posts/:slug", (req, res) => {
+  try {
+    const post = db.prepare("SELECT * FROM posts WHERE slug = ?").get(req.params.slug);
+    if (!post) {
+      res.status(404).json({ error: "Post not found" });
+      return;
+    }
+    res.json(post);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/posts", isAdmin, (req, res) => {
+  try {
+    const id = crypto.randomUUID();
+    const { title, slug, description, content, bannerImage, readTime, tags, isPinned } = req.body;
+    db.prepare(`
+      INSERT INTO posts (id, title, slug, description, content, bannerImage, readTime, authorId, authorName, tags, isPinned)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id, title, slug, description, content, bannerImage, readTime,
+      req.session.userId, req.session.user?.username, tags, isPinned ? 1 : 0
+    );
+    res.json({ success: true, id, slug });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/api/posts/:id", isAdmin, (req, res) => {
+  try {
+    const { title, slug, description, content, bannerImage, readTime, tags, isPinned } = req.body;
+    db.prepare(`
+      UPDATE posts SET title=?, slug=?, description=?, content=?, bannerImage=?, readTime=?, tags=?, isPinned=?
+      WHERE id=?
+    `).run(title, slug, description, content, bannerImage, readTime, tags, isPinned ? 1 : 0, req.params.id);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/api/posts/:id", isAdmin, (req, res) => {
+  try {
+    console.log("Deleting post with id:", req.params.id);
+    db.prepare("DELETE FROM posts WHERE id=?").run(req.params.id);
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error("Delete error:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 async function startServer() {
@@ -222,7 +360,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*all', (req, res) => {
+    app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
